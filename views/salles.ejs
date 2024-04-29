@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liste des Salles de Réunion</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    /* Styles pour le tableau */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    .available {
+      color: green;
+    }
+
+    .unavailable {
+      color: red;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+
+    .navbar {
+      background-color: #007bff;
+    }
+
+    .navbar-brand {
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .navbar-nav .nav-link {
+      color: #040404;
+    }
+
+    .container {
+      padding-top: 20px;
+    }
+
+    .btn {
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background-color: #bd2130;
+    }
+
+    .alert {
+      border-radius: 8px;
+    }
+
+    .header {
+      background-image: url('https://source.unsplash.com/1600x900/?meeting-room');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+      text-align: center;
+      padding: 100px 0;
+      margin-bottom: 30px;
+      border-radius: 8px;
+    }
+
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .header p {
+      font-size: 20px;
+      margin-bottom: 40px;
+    }
+
+    .footer {
+      background-color: #007bff;
+      color: #fff;
+      padding: 20px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <h2>Liste des Salles de Réunion</h2>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/"><i class="fas fa-home"></i> Accueil</a>
+          </li>
+          <% if (user && user.role === 'admin') { %>
+            <li class="nav-item">
+              <a class="nav-link" href="/meetingRooms"><i class="fas fa-plus-circle"></i> Ajouter une salle</a>
+            </li>
+            <li class="nav-item">
+              <form action="/users/logout" method="POST">
+                <button type="submit" class="btn btn-link nav-link"><i class="fas fa-sign-out-alt"></i> <span class="font-weight-bold">Se déconnecter</span></button>
+              </form>
+            </li>
+            
+          <% } else if (user) { %>
+            <li class="nav-item">
+              <form action="/users/logout" method="POST">
+                <button type="submit" class="btn btn-link nav-link"><i class="fas fa-sign-out-alt"></i> <span class="font-weight-bold">Se déconnecter</span></button>
+              </form>
+            </li>            
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="header">
+    <h1  style="color: red;">Liste des Salles de Réunion</h1>
+    <p>Bienvenue <span class="font-weight-bold"><%= name %></span> !</p>
+  </div>
+
+  <div class="container">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Capacité</th>
+          <th>Équipement</th>
+          <th>Disponibilité</th>
+          <th>Réservation</th>
+          <th>Annuler Réservation</th>
+          <% if (user && user.role === 'admin') { %>
+            <th>Supprimer</th>
+          <% } %>
+        </tr>
+      </thead>
+      <tbody>
+        <% meetingRooms.forEach(room => { %>
+          <tr>
+            <td><%= room.name %></td>
+            <td><%= room.capacity %></td>
+            <td><%= room.equipment.join(', ') %></td>
+            <td class="<%= room.availability ? 'available' : 'unavailable' %>">
+              <%= room.availability ? 'Disponible' : 'Non disponible' %>
+            </td>
+           
+            <td id="reservationForm_<%= room.name %>">
+              <% if (room.availability) { %>
+                <button class="btn btn-success" onclick="reserverSalle('<%= room.name %>')">Réserver</button>
+                <% } else { %>
+                  <button class="btn btn-primary" disabled>Non disponible</button>
+                  
+                  <% } %>
+            </td>
+            <td>
+              <% if (!room.availability) { %>
+                <form action="/reservation/cancelReservation" method="POST" style="display: inline;">
+                    <button type="submit" style="background-color: #ba1d1d; /* Green */
+                        border: none;
+                        color: white;
+                        padding: 15px 32px;
+                        text-align: center;
+                        text-decoration: none;
+                        display: inline-block;
+                        font-size: 13px;
+                        margin: 4px 2px;
+                        cursor: pointer;
+                        border-radius: 10px;">Annuler la réservation</button>
+                </form>
+            <% } %>
+            
+            
+          </td>
+          
+            <td>
+              <% if (user && user.role === 'admin') { %>
+                <form action="/salle/deleteMeetingRoom/<%= room._id %>" method="post">
+                  <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <script>
+    function cancelReservation(roomId) {
+      if (confirm("Êtes-vous sûr de vouloir annuler cette réservation ?")) {
+        fetch(`/api/meetingroom/${roomId}/cancelreservation`, { 
+          method: 'PUT'
+        })
+        .then(response => {
+          if (response.ok) {
+            // Mettre à jour l'interface utilisateur après l'annulation de la réservation
+            document.getElementById(`reservationForm_${roomId}`).innerHTML = '<button class="btn btn-success" onclick="reserverSalle(\''+roomId+'\')">Réserver</button>';
+            // Afficher un message pour indiquer que la réservation a été annulée
+            alert('Réservation annulée avec succès');
+          } else {
+            console.error('Erreur lors de l\'annulation de la réservation');
+          }
+        })
+        .catch(error => console.error('Erreur lors de l\'annulation de la réservation:', error));
+      }
+    }
+</script>
+
+
+
+    <script>
+    function reserverSalle(nomSalle) {
+      // Créer le contenu du formulaire de réservation
+      var formulaireReservation = `
+    <form id="confirmReservationForm${nomSalle}" action="/reservation/confirmReservation" method="POST">
+        <label for="dateDebut">Date de début :</label>
+        <input type="date" id="dateDebut_${nomSalle}" name="dateDebut" required>
+        <label for="heureDebut">Heure de début :</label>
+        <input type="time" id="heureDebut_${nomSalle}" name="heureDebut" required>
+        <label for="heureFin">Heure de fin :</label>
+        <input type="time" id="heureFin_${nomSalle}" name="heureFin" required>
+        <label for="dateFin">Date de fin  :</label>
+        <input type="date" id="dateFin_${nomSalle}" name="dateFin" required>
+        <input type="hidden" id="roomName_${nomSalle}" name="roomName" value="${nomSalle}">
+        <button type="submit" class="btn btn-primary">Confirmer la réservation</button>
+    </form>`;
+
+
+      // Remplacer le bouton par le formulaire de réservation
+      document.getElementById(`reservationForm_${nomSalle}`).innerHTML = formulaireReservation;
+    }
+
+    function reserverSalleForm(nomSalle) {
+      const dateDebut = document.getElementById(`dateDebut_${nomSalle}`).value;
+      const heureDebut = document.getElementById(`heureDebut_${nomSalle}`).value;
+      const heureFin = document.getElementById(`heureFin_${nomSalle}`).value;
+      const dateFin = document.getElementById(`dateFin_${nomSalle}`).value;
+    }
+  </script>
+  <script>
+    // Détecter le paramètre de query et afficher une alerte
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reservationStatus = urlParams.get('reservation');
+
+        if (reservationStatus === 'confirmee') {
+            // Afficher une alerte pour confirmer la réservation
+            alert('Réservation confirmée');
+        }
+    });
+</script>
+  <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
